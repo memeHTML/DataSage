@@ -87,23 +87,35 @@ class GstReportsViewModel @Inject constructor(
     private fun saveJsonToDownloads(context: Context, jsonContent: String, period: String) {
         try {
             val filename = "GSTR1_$period.json"
-            val resolver = context.contentResolver
-            val contentValues = android.content.ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                // API 29+ — use MediaStore
+                val resolver = context.contentResolver
+                val contentValues = android.content.ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
                     put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/RetailIQ")
                 }
-            }
-
-            val uri: Uri? = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-            if (uri != null) {
-                resolver.openOutputStream(uri)?.use { outputStream: OutputStream ->
-                    outputStream.write(jsonContent.toByteArray())
+                val uri: Uri? = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { outputStream: OutputStream ->
+                        outputStream.write(jsonContent.toByteArray())
+                    }
+                    _exportMessage.value = "Exported to Downloads/RetailIQ/$filename"
+                } else {
+                    _exportMessage.value = "Failed to create file in Downloads"
                 }
-                _exportMessage.value = "Exported to Downloads/RetailIQ/$filename"
             } else {
-                _exportMessage.value = "Failed to create file in Downloads"
+                // Legacy fallback for API < 29
+                @Suppress("DEPRECATION")
+                val downloadsDir = java.io.File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    "RetailIQ"
+                )
+                downloadsDir.mkdirs()
+                val file = java.io.File(downloadsDir, filename)
+                file.writeText(jsonContent)
+                _exportMessage.value = "Exported to Downloads/RetailIQ/$filename"
             }
         } catch (e: Exception) {
             _exportMessage.value = "Export error: ${e.message}"

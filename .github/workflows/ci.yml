@@ -32,6 +32,12 @@ jobs:
       - name: Fix Gradle wrapper permissions
         run: sed -i 's/\r$//' gradlew && chmod +x gradlew
 
+      - name: Generate lint baseline if missing
+        run: |
+          if [ ! -f app/lint-baseline.xml ]; then
+            ./gradlew updateLintBaseline --no-daemon || true
+          fi
+
       - name: Run Android Lint
         run: ./gradlew lintDebug --no-daemon
 
