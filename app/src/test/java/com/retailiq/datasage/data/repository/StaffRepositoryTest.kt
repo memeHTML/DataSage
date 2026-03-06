@@ -53,7 +53,10 @@ class StaffRepositoryTest {
         val mockData = listOf(
             StaffPerformanceSummaryDto("u1", "John", 100.0, 5, 0.0, 0.0, 500.0, 0.2)
         )
-        `when`(api.getDailyPerformance("2023-10-10")).thenReturn(Response.success(mockData))
+        val apiResponse = com.retailiq.datasage.data.api.ApiResponse(
+            success = true, data = mockData, error = null, meta = null
+        )
+        `when`(api.getDailyPerformance("2023-10-10")).thenReturn(apiResponse)
 
         val result = repository.getDailyPerformance("2023-10-10")
 
