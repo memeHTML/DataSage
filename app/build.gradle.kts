@@ -39,6 +39,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -131,4 +132,5 @@ dependencies {
     androidTestImplementation(libs.work.testing)
     androidTestImplementation(libs.mockk.android)
     testImplementation(libs.mockk.agent)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
