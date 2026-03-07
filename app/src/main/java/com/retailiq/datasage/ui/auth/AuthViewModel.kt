@@ -33,6 +33,40 @@ class AuthViewModel @Inject constructor(
     private val _resendCount = MutableStateFlow(0)
     val resendCount: StateFlow<Int> = _resendCount.asStateFlow()
 
+    // --- Setup Wizard State ---
+    private val _wizardStoreName = MutableStateFlow("")
+    val wizardStoreName = _wizardStoreName.asStateFlow()
+    fun setWizardStoreName(name: String) { _wizardStoreName.value = name }
+
+    private val _wizardStoreAddress = MutableStateFlow("")
+    val wizardStoreAddress = _wizardStoreAddress.asStateFlow()
+    fun setWizardStoreAddress(address: String) { _wizardStoreAddress.value = address }
+
+    private val _wizardBusinessType = MutableStateFlow("Grocery")
+    val wizardBusinessType = _wizardBusinessType.asStateFlow()
+    fun setWizardBusinessType(type: String) { _wizardBusinessType.value = type }
+
+    private val _wizardSelectedCategories = MutableStateFlow<Set<String>>(emptySet())
+    val wizardSelectedCategories = _wizardSelectedCategories.asStateFlow()
+    fun toggleWizardCategory(category: String) {
+        val current = _wizardSelectedCategories.value.toMutableSet()
+        if (current.contains(category)) current.remove(category) else current.add(category)
+        _wizardSelectedCategories.value = current
+    }
+
+    private val _wizardProductName = MutableStateFlow("")
+    val wizardProductName = _wizardProductName.asStateFlow()
+    fun setWizardProductName(name: String) { _wizardProductName.value = name }
+
+    private val _wizardProductPrice = MutableStateFlow("")
+    val wizardProductPrice = _wizardProductPrice.asStateFlow()
+    fun setWizardProductPrice(price: String) { _wizardProductPrice.value = price }
+
+    private val _wizardProductStock = MutableStateFlow("")
+    val wizardProductStock = _wizardProductStock.asStateFlow()
+    fun setWizardProductStock(stock: String) { _wizardProductStock.value = stock }
+    // --------------------------
+
     private var otpCountdownJob: Job? = null
 
     fun startOtpCountdown() {
@@ -70,9 +104,9 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(fullName: String, mobile: String, store: String, password: String, onSuccess: () -> Unit) = viewModelScope.launch {
+    fun register(fullName: String, mobile: String, email: String, store: String, password: String, onSuccess: () -> Unit) = viewModelScope.launch {
         _uiState.value = AuthUiState.Loading
-        when (val result = authRepository.register(fullName, mobile, store, password)) {
+        when (val result = authRepository.register(fullName, mobile, email, store, password)) {
             is NetworkResult.Success -> {
                 _uiState.value = AuthUiState.Success("OTP sent")
                 onSuccess()

@@ -7,8 +7,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -16,6 +23,24 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -98,23 +123,43 @@ fun LoginScreen(viewModel: AuthViewModel, onRegister: () -> Unit, onForgot: () -
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(viewModel: AuthViewModel, onOtp: (String) -> Unit) {
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val state by viewModel.uiState.collectAsState()
+
     var fullName by remember { mutableStateOf("") }
     var mobile by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var store by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Register", style = MaterialTheme.typography.headlineMedium)
-        OutlinedTextField(fullName, { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(mobile, { mobile = it }, label = { Text("Mobile Number") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(store, { store = it }, label = { Text("Store Name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(password, { password = it }, label = { Text("Password (8+ chars, 1+ digit)") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
-        Button(onClick = {
-            if (AuthValidation.isValidMobile(mobile) && AuthValidation.isStrongPassword(password)) {
-                viewModel.register(fullName, mobile, store, password) { onOtp(mobile) }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { p ->
+        Column(Modifier.fillMaxSize().padding(p).padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Register", style = MaterialTheme.typography.headlineMedium)
+            OutlinedTextField(fullName, { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(mobile, { mobile = it }, label = { Text("Mobile Number") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(email, { email = it }, label = { Text("Email Address") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(store, { store = it }, label = { Text("Store Name") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(password, { password = it }, label = { Text("Password (8+ chars, 1+ digit)") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            Button(onClick = {
+                if (!AuthValidation.isValidMobile(mobile)) {
+                    scope.launch { snackbar.showSnackbar("Enter a valid 10-digit mobile number") }
+                } else if (!AuthValidation.isValidEmail(email)) {
+                    scope.launch { snackbar.showSnackbar("Enter a valid email address") }
+                } else if (!AuthValidation.isStrongPassword(password)) {
+                    scope.launch { snackbar.showSnackbar("Password must be 8+ chars and contain a digit") }
+                } else {
+                    viewModel.register(fullName, mobile, email, store, password) { onOtp(mobile) }
+                }
+            }, modifier = Modifier.fillMaxWidth()) { Text("Register") }
+            
+            if (state is AuthUiState.Error) {
+                LaunchedEffect(state) { scope.launch { snackbar.showSnackbar((state as AuthUiState.Error).message) } }
             }
-        }, modifier = Modifier.fillMaxWidth()) { Text("Register") }
+        }
     }
 }
 
@@ -158,19 +203,178 @@ fun ResetPasswordScreen(viewModel: AuthViewModel, mobile: String, onDone: () -> 
 @Composable
 fun SetupWizardScreen(viewModel: AuthViewModel, onComplete: () -> Unit) {
     var step by remember { mutableStateOf(1) }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Setup Wizard (Step $step/4)")
-        Text(
-            when (step) {
-                1 -> "Confirm store information"
-                2 -> "Review categories"
-                3 -> "Add first product (optional)"
-                else -> "You're ready to go"
+    
+    when (step) {
+        1 -> WizardStoreInfoScreen(viewModel, onNext = { step = 2 })
+        2 -> WizardCategoriesScreen(viewModel, onNext = { step = 3 }, onBack = { step = 1 })
+        3 -> WizardFirstProductScreen(viewModel, onNext = { step = 4 }, onSkip = { step = 4 }, onBack = { step = 2 })
+        4 -> WizardSuccessScreen(viewModel, onFinish = { viewModel.completeSetup(); onComplete() })
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WizardStoreInfoScreen(viewModel: AuthViewModel, onNext: () -> Unit) {
+    val storeName by viewModel.wizardStoreName.collectAsState()
+    val address by viewModel.wizardStoreAddress.collectAsState()
+    val businessType by viewModel.wizardBusinessType.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf("Grocery", "Electronics", "Apparel", "Pharmacy", "Hardware", "Other")
+
+    Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+        Text("Store Details", style = MaterialTheme.typography.headlineMedium)
+        Text("Let's confirm your basic business information.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        OutlinedTextField(storeName, { viewModel.setWizardStoreName(it) }, label = { Text("Store Name") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(address, { viewModel.setWizardStoreAddress(it) }, label = { Text("Store Address") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+        
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+            OutlinedTextField(
+                value = businessType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Business Type") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = { viewModel.setWizardBusinessType(option); expanded = false }
+                    )
+                }
             }
+        }
+        
+        Spacer(modifier = Modifier.weight(1f))
+        Button(onClick = onNext, modifier = Modifier.fillMaxWidth().height(50.dp), enabled = storeName.isNotBlank() && address.isNotBlank()) {
+            Text("Next: Categories")
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun WizardCategoriesScreen(viewModel: AuthViewModel, onNext: () -> Unit, onBack: () -> Unit) {
+    val selected by viewModel.wizardSelectedCategories.collectAsState()
+    val defaultCategories = listOf("Beverages", "Snacks", "Dairy", "Produce", "Bakery", "Meat", "Personal Care", "Cleaning", "Electronics", "Stationery")
+
+    Column(Modifier.fillMaxSize().padding(24.dp)) {
+        Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Select Categories", style = MaterialTheme.typography.headlineMedium)
+        Text("What types of products do you sell?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            defaultCategories.forEach { cat ->
+                val isSelected = selected.contains(cat)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { viewModel.toggleWizardCategory(cat) },
+                    label = { Text(cat) }
+                )
+            }
+        }
+        
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextButton(onClick = onBack) { Text("Back") }
+            Button(onClick = onNext, modifier = Modifier.height(50.dp)) { Text("Next: Add Product") }
+        }
+    }
+}
+
+@Composable
+fun WizardFirstProductScreen(viewModel: AuthViewModel, onNext: () -> Unit, onSkip: () -> Unit, onBack: () -> Unit) {
+    val productName by viewModel.wizardProductName.collectAsState()
+    val productPrice by viewModel.wizardProductPrice.collectAsState()
+    val productStock by viewModel.wizardProductStock.collectAsState()
+
+    Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Icon(Icons.Default.Inventory, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+        Text("Add First Product", style = MaterialTheme.typography.headlineMedium)
+        Text("Kickstart your inventory by adding your first item.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        OutlinedTextField(
+            value = productName, 
+            onValueChange = { viewModel.setWizardProductName(it) }, 
+            label = { Text("Product Name") }, 
+            modifier = Modifier.fillMaxWidth()
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (step < 4) Button(onClick = { step += 1 }) { Text(if (step == 3) "Skip" else "Next") }
-            if (step == 4) Button(onClick = { viewModel.completeSetup(); onComplete() }) { Text("Finish") }
+        
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            OutlinedTextField(
+                value = productPrice, 
+                onValueChange = { viewModel.setWizardProductPrice(it) }, 
+                label = { Text("Selling Price (₹)") }, 
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = productStock, 
+                onValueChange = { viewModel.setWizardProductStock(it) }, 
+                label = { Text("Initial Stock") }, 
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        OutlinedTextField(
+            value = "", 
+            onValueChange = {}, 
+            label = { Text("Barcode (Optional)") }, 
+            trailingIcon = { Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.weight(1f))
+        
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextButton(onClick = onBack) { Text("Back") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onSkip) { Text("Skip") }
+                Button(onClick = onNext, enabled = productName.isNotBlank(), modifier = Modifier.height(50.dp)) { Text("Finish Setup") }
+            }
+        }
+    }
+}
+
+@Composable
+fun WizardSuccessScreen(viewModel: AuthViewModel, onFinish: () -> Unit) {
+    val storeName by viewModel.wizardStoreName.collectAsState()
+    
+    Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.CheckCircle, contentDescription = "Success", modifier = Modifier.size(100.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("You're all set!", style = MaterialTheme.typography.headlineLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Welcome to RetailIQ, ${storeName.ifBlank { "Store Owner" }}.\nYour dashboard is ready.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        Button(
+            onClick = onFinish,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Go to Dashboard", style = MaterialTheme.typography.titleMedium)
         }
     }
 }

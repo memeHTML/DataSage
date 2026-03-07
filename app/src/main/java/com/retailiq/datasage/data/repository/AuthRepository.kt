@@ -24,8 +24,8 @@ class AuthRepository @Inject constructor(
         NetworkResult.Success(tokens.role)
     }
 
-    suspend fun register(fullName: String, mobile: String, store: String, password: String): NetworkResult<Unit> = safeCall {
-        val response = authApi.register(RegisterRequest(fullName = fullName, mobileNumber = mobile, password = password, storeName = store))
+    suspend fun register(fullName: String, mobile: String, email: String, store: String, password: String): NetworkResult<Unit> = safeCall {
+        val response = authApi.register(RegisterRequest(fullName = fullName, mobileNumber = mobile, email = email, password = password, storeName = store))
         if (!response.success) NetworkResult.Error(422, response.error.toUserMessage()) else NetworkResult.Success(Unit)
     }
 

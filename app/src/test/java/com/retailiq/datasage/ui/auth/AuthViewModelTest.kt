@@ -127,7 +127,7 @@ class AuthViewModelTest {
         val vm = AuthViewModel(AuthRepository(FakeAuthApi(), FakeTokenStore()))
         var called = false
 
-        vm.register("Test", "9999999999", "Store", "password1") { called = true }
+        vm.register("Test", "9999999999", "test@example.com", "Store", "password1") { called = true }
         advanceUntilIdle()
 
         assertTrue(called)

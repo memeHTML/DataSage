@@ -4,7 +4,7 @@ import com.retailiq.datasage.core.AuthEvent
 import com.retailiq.datasage.core.AuthEventBus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -16,7 +16,7 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelTest {
-    private val testDispatcher = StandardTestDispatcher()
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setUp() {
@@ -41,7 +41,6 @@ class AppViewModelTest {
         val viewModel = AppViewModel(bus)
         viewModel.onLoginSuccess()
         bus.emit(AuthEvent.SessionExpired)
-        testDispatcher.scheduler.advanceUntilIdle()
         assertFalse(viewModel.isLoggedIn.value)
     }
 }

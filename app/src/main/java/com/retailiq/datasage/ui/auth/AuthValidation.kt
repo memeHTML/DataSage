@@ -7,4 +7,7 @@ object AuthValidation {
 
     fun isStrongPassword(password: String): Boolean =
         password.length >= 8 && password.any { it.isDigit() }
+
+    fun isValidEmail(email: String): Boolean =
+        android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()
 }

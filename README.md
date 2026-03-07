@@ -271,6 +271,15 @@ return try {
 
 ## Recent Changes (2026-03-06)
 
+### Recent Changes (2026-03-08)
+- **CI/CD Pipeline Setup**: Created `.github/workflows/android.yml` to automate Gradle builds, Lint checks, and Unit Tests via GitHub Actions on push/PR to track code health and regression.
+- **Setup Wizard Overhaul**: Replaced the placeholder wizard text with an immersive, 4-step Material 3 Compose flow to capture Store Info, Preferred Categories, and an Initial Product, culminating in a stylized Success Dashboard.
+- **Email OTP Authentication**: Aligned the app's signup flow with the new RetailIQ backend design.
+  - Added email validation logic (`isValidEmail()`) to `AuthValidation`.
+  - Updated `RegisterScreen` with a dedicated email input field.
+  - Expanded `AuthViewModel`, `AuthRepository`, and `AuthApiService` to include `email` parameter inside `RegisterRequest`.
+  - Resolved `MPAndroidChart` mock issues in unit tests by enabling `isReturnDefaultValues = true`. All tests verify successfully.
+
 ### Frontend Polish (2026-03-05)
 - **Bottom nav reduced to 5 tabs**: Home, Sales, Inventory, Analytics, More. Suppliers and Pricing moved to Settings/More.
 - **SettingsScreen reorganized**: Grouped into sections (Quick Actions, Business, Reports, Integrations, System) with distinct per-feature icons and subtitles.

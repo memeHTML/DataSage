@@ -55,7 +55,7 @@ class AuthRepositoryTest {
         val tokenStore = FakeTokenStore()
         val repo = AuthRepository(FakeAuthApi(), tokenStore)
 
-        val result = repo.register("Test User", "9999999999", "My Store", "secret123")
+        val result = repo.register("Test User", "9999999999", "test@example.com", "My Store", "secret123")
 
         assertTrue(result is NetworkResult.Success)
         // register should NOT save tokens
@@ -67,7 +67,7 @@ class AuthRepositoryTest {
         val api = FakeAuthApi(registerSuccess = false)
         val repo = AuthRepository(api, FakeTokenStore())
 
-        val result = repo.register("Test User", "9999999999", "My Store", "secret123")
+        val result = repo.register("Test User", "9999999999", "test@example.com", "My Store", "secret123")
 
         assertTrue(result is NetworkResult.Error)
     }

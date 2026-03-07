@@ -12,9 +12,9 @@ class NavModelsTest {
     }
 
     @Test
-    fun staff_hasThreeTabs() {
+    fun staff_hasFourTabs() {
         val tabs = tabsForRole(UserRole.STAFF)
-        assertEquals(3, tabs.size)
-        assertEquals(listOf("home", "sales", "inventory"), tabs.map { it.route })
+        assertEquals(4, tabs.size)
+        assertEquals(listOf("home", "sales", "inventory", "more"), tabs.map { it.route })
     }
 }

@@ -61,6 +61,10 @@ android {
         warningsAsErrors = false
         htmlReport = true
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 kapt {

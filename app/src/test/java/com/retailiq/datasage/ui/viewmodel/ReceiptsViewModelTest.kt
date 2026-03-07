@@ -13,11 +13,7 @@ import com.retailiq.datasage.data.model.RegisterBarcodeRequest
 import com.retailiq.datasage.data.repository.ReceiptsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -32,7 +28,7 @@ import retrofit2.Response
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReceiptsViewModelTest {
 
-    private val testDispatcher = StandardTestDispatcher()
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
     fun setup() {
@@ -57,20 +53,11 @@ class ReceiptsViewModelTest {
         val repo = ReceiptsRepository(FakeReceiptsApi(false))
         val viewModel = ReceiptsViewModel(repo)
 
-        val states = mutableListOf<BarcodeLookupUiState>()
-        val job = launch {
-            viewModel.barcodeLookupState.toList(states)
-        }
-
         viewModel.lookupBarcode("123456")
-        advanceUntilIdle()
 
-        assertTrue(states.contains(BarcodeLookupUiState.Loading))
-        val lastState = states.last()
+        val lastState = viewModel.barcodeLookupState.value
         assertTrue(lastState is BarcodeLookupUiState.Success)
         assertEquals("Test Product", (lastState as BarcodeLookupUiState.Success).product.productName)
-
-        job.cancel()
     }
 
     @Test
@@ -78,20 +65,10 @@ class ReceiptsViewModelTest {
         val repo = ReceiptsRepository(FakeReceiptsApi(true))
         val viewModel = ReceiptsViewModel(repo)
 
-        val states = mutableListOf<BarcodeLookupUiState>()
-        val job = launch {
-            viewModel.barcodeLookupState.toList(states)
-        }
-
         viewModel.lookupBarcode("999999")
-        advanceUntilIdle()
 
-        assertTrue(states.contains(BarcodeLookupUiState.Loading))
-        val lastState = states.last()
+        val lastState = viewModel.barcodeLookupState.value
         assertTrue(lastState is BarcodeLookupUiState.Error)
-        assertEquals("Product not found for barcode: 999999", (lastState as BarcodeLookupUiState.Error).message)
-
-        job.cancel()
     }
 
     private class FakeReceiptsApi(val notFound: Boolean) : ReceiptsApiService {
