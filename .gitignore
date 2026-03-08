@@ -21,7 +21,9 @@ app/build/
 /.idea/deploymentTargetSelector.xml
 /.idea/misc.xml
 /.idea/.name
-/.idea/compiler.xml
+/.idea/compiler.xml# Signing
+keystore.properties
+*.jks
 /.idea/markdown.xml
 /.idea/gradle.xml
 /.idea/

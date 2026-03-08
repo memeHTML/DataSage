@@ -185,8 +185,11 @@ All workflows use JDK 17 (Temurin), Gradle caching via `gradle/actions/setup-gra
 
 ### Prerequisites
 - **Android Studio** Hedgehog or later with **JDK 21** (Android Studio's bundled JBR recommended)
-- **Gradle** 8.10 (wrapper included)
-- **RetailIQ backend** running locally (default: `http://10.1.0.2:5000/`)
+- **Gradle** 9.1.0 (wrapper included)
+- **Android Gradle Plugin** 9.0.0
+- **Kotlin** 2.3.0 (K2 compiler enabled)
+- **KSP** (Kotlin Symbol Processing) for annotation processing
+- **RetailIQ backend** running locally (default: `http://10.0.2.2:5000/`)
 
 ### Configuration
 
@@ -203,7 +206,30 @@ API_BASE_URL=http://10.1.0.2:5000/
 ```bash
 ./gradlew compileDebugKotlin   # Verify all sources compile
 ./gradlew assembleDebug        # Build debug APK
+./gradlew assembleRelease      # Build signed release APK
 ```
+
+### Release APK Signing
+
+The project is configured to sign release APKs using a keystore.
+
+#### Local Development
+1. Create a `keystore.properties` file in the project root:
+   ```properties
+   storePassword=your_password
+   keyPassword=your_password
+   keyAlias=your_alias
+   storeFile=your_keystore.jks
+   ```
+2. Place your `.jks` file in the `app/` directory (or update the path in `storeFile`).
+3. These files are gitignored for security.
+
+#### CI/CD (GitHub Actions)
+Add the following as **GitHub Repository Secrets**:
+- `RELEASE_STORE_PASSWORD`
+- `RELEASE_KEY_ALIAS`
+- `RELEASE_KEY_PASSWORD`
+The keystore file is currently stored in `app/release-keystore.jks` (placeholder generated for initial setup). For production, you should securely upload your production keystore.
 
 ### Running Unit Tests
 
@@ -272,13 +298,17 @@ return try {
 ## Recent Changes (2026-03-06)
 
 ### Recent Changes (2026-03-08)
-- **CI/CD Pipeline Setup**: Created `.github/workflows/android.yml` to automate Gradle builds, Lint checks, and Unit Tests via GitHub Actions on push/PR to track code health and regression.
-- **Setup Wizard Overhaul**: Replaced the placeholder wizard text with an immersive, 4-step Material 3 Compose flow to capture Store Info, Preferred Categories, and an Initial Product, culminating in a stylized Success Dashboard.
-- **Email OTP Authentication**: Aligned the app's signup flow with the new RetailIQ backend design.
-  - Added email validation logic (`isValidEmail()`) to `AuthValidation`.
-  - Updated `RegisterScreen` with a dedicated email input field.
-  - Expanded `AuthViewModel`, `AuthRepository`, and `AuthApiService` to include `email` parameter inside `RegisterRequest`.
-  - Resolved `MPAndroidChart` mock issues in unit tests by enabling `isReturnDefaultValues = true`. All tests verify successfully.
+- **Release APK Signing**: Corrected building configuration for signed release APKs.
+  - Implemented secure property loading via `keystore.properties` or environment variables.
+  - Updated GitHub Actions CI/CD to produce signed release artifacts using GitHub Secrets.
+  - Automated JDK 21 (JBR) path resolution via `gradle.properties`.
+- **Major AGP 9.0.0 Upgrade**: Safely updated the project to Android Gradle Plugin 9.0.0, Gradle 9.1.0, and Kotlin 2.3.0.
+  - **Room 2.7.0 Update**: Upgraded Room to 2.7.0 to fix KSP compatibility issues with the latest Kotlin version.
+  - **KSP Migration**: Migrated all annotation processors from `kapt` to `ksp`.
+  - **Compatibility Optimization**: Configured `android.builtInKotlin=false` and `android.newDsl=false` in `gradle.properties` to ensure KSP and legacy plugin compatibility during the major branch transition.
+- **CI/CD Pipeline Setup**: Created `.github/workflows/android.yml` to automate Gradle builds, Lint checks, and Unit Tests via GitHub Actions on push/PR.
+- **Setup Wizard Overhaul**: Implemented an elegant 4-step Material 3 onboarding flow for new users.
+- **Email OTP Authentication**: Added email validation and registration fields aligned with the latest RetailIQ standards.
 
 ### Frontend Polish (2026-03-05)
 - **Bottom nav reduced to 5 tabs**: Home, Sales, Inventory, Analytics, More. Suppliers and Pricing moved to Settings/More.
