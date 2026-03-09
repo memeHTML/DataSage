@@ -26,18 +26,24 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
-    signingConfigs {
-        create("release") {
-            val keystoreProperties = Properties()
-            val keystorePropertiesFile = File(rootDir, "keystore.properties")
-            if (keystorePropertiesFile.exists()) {
-                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-            }
+    val keystoreProperties = Properties()
+    val keystorePropertiesFile = File(rootDir, "keystore.properties")
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    }
 
-            storeFile = file(keystoreProperties.getProperty("storeFile") ?: System.getenv("RELEASE_STORE_FILE") ?: "release-keystore.jks")
-            storePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("RELEASE_STORE_PASSWORD")
-            keyAlias = keystoreProperties.getProperty("keyAlias") ?: System.getenv("RELEASE_KEY_ALIAS")
-            keyPassword = keystoreProperties.getProperty("keyPassword") ?: System.getenv("RELEASE_KEY_PASSWORD")
+    val releaseStoreFilePath = keystoreProperties.getProperty("storeFile") ?: System.getenv("RELEASE_STORE_FILE") ?: "release-keystore.jks"
+    val releaseStoreFile = file(releaseStoreFilePath)
+    val hasValidKeystore = releaseStoreFile.exists() && releaseStoreFile.length() > 0
+
+    signingConfigs {
+        if (hasValidKeystore) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = keystoreProperties.getProperty("storePassword") ?: System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = keystoreProperties.getProperty("keyAlias") ?: System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = keystoreProperties.getProperty("keyPassword") ?: System.getenv("RELEASE_KEY_PASSWORD")
+            }
         }
     }
 
@@ -47,7 +53,9 @@ android {
         }
         release {
             isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName("release")
+            if (hasValidKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

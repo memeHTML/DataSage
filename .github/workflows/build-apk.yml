@@ -51,13 +51,17 @@ jobs:
         if: ${{ inputs.build_type == 'debug' }}
         run: ./gradlew assembleDebug --no-daemon
 
+      - name: Decode signing key
+        if: ${{ inputs.build_type == 'release' }}
+        run: echo "${{ secrets.RELEASE_SIGNING_KEY }}" | base64 -d > app/release-keystore.jks
+
       - name: Build release APK
         if: ${{ inputs.build_type == 'release' }}
         run: ./gradlew assembleRelease --no-daemon
         env:
-          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
 
       - name: Get APK info
         id: apk-info

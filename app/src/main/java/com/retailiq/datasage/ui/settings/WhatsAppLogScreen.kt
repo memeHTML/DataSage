@@ -21,6 +21,8 @@ import com.retailiq.datasage.data.model.WhatsAppLogDto
 import com.retailiq.datasage.ui.components.EmptyStateView
 import com.retailiq.datasage.ui.components.ShimmerLoadingList
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WhatsAppLogScreen(
@@ -61,19 +63,29 @@ fun WhatsAppLogScreen(
                 }
                 is WhatsAppLogUiState.Success -> {
                     if (state.logs.isEmpty()) {
-                        EmptyStateView(
-                            message = "No messages sent yet."
-                        )
-                    } else {
-                        // TODO: Implement actual PullRefresh for Material 3.
-                        // For simplicity, we just show a LazyColumn.
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        PullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = { viewModel.loadLogs() },
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            items(state.logs) { log ->
-                                LogEntryCard(log)
+                            EmptyStateView(
+                                message = "No messages sent yet."
+                            )
+                        }
+                    } else {
+                        PullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = { viewModel.loadLogs() },
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(state.logs) { log ->
+                                    LogEntryCard(log)
+                                }
                             }
                         }
                     }

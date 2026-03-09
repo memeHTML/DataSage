@@ -45,7 +45,7 @@ DataSage is the Android companion app for the **RetailIQ** backend platform. It 
 | Suppliers / PO | `/api/v1/suppliers`, `/api/v1/purchase-orders` | `SupplierApiService` | `SupplierRepository` | `SupplierViewModel`, `PurchaseOrderViewModel` |
 | GST | `/api/v1/gst` | `GstApiService` | `GstRepository` | `GstConfigViewModel`, `HsnSearchViewModel`, `GstReportsViewModel` |
 | Analytics | `/api/v1/analytics` | `AnalyticsApiService` | — | `AnalyticsViewModel` |
-| Customers | `/api/v1/customers` | `CustomerApiService` | — | `CustomersViewModel` |
+| Customers | `/api/v1/customers` | `CustomerApiService` | `CustomerRepository` | `CustomersViewModel`, `CustomerProfileViewModel` |
 | Transactions | `/api/v1/transactions` | `TransactionApiService` | — | `SalesViewModel` |
 | Pricing | `/api/v1/pricing` | `PricingApiService` | — | `PricingViewModel` |
 | Staff | `/api/v1/staff-performance` | `StaffApiService` | — | `StaffViewModel` |
@@ -57,7 +57,7 @@ DataSage is the Android companion app for the **RetailIQ** backend platform. It 
 | NLP Query | `/api/v1/nlp` | `NlpQueryApiService` | — | `NlpQueryViewModel` |
 | Vision/OCR | `/api/v1/vision` | `VisionApiService` | — | `VisionViewModel` |
 | Foreasts | `/api/v1/forecasting` | `ForecastApiService` | — | `ForecastViewModel` |
-| Events | `/api/v1/events` | `EventApiService` | — | *(placeholder screen)* |
+| Events | `/api/v1/events` | `EventApiService` | `EventRepository` | `EventCalendarViewModel` |
 | Offline Sync | `/api/v1/sync` | `OfflineApiService` | — | `SyncStatusViewModel` |
 
 ---
@@ -153,7 +153,7 @@ staff/performance → StaffPerformanceScreen
 settings/loyalty  → LoyaltySettingsScreen
 pricing/suggestions → PricingSuggestionsScreen
 forecast          → ForecastScreen
-events            → EventsScreen
+events            → EventCalendarScreen
 nlp               → NlpQueryScreen
 settings/gst      → GstConfigScreen
 reports/gst       → GstReportsScreen
@@ -176,6 +176,7 @@ purchase-orders   → PurchaseOrderListScreen
 | `ci.yml` | Push to `main`/`develop`, PRs to `main` | Lint → Build → Unit Tests (with JUnit report) |
 | `release.yml` | Tag `v*` | Test → Build release APK → GitHub Release |
 | `code-quality.yml` | PRs to `main` | Detekt (optional) + APK size report |
+| `build-apk.yml` | Manual Workflow Dispatch | Builds either Debug or Release APK on-demand |
 
 All workflows use JDK 17 (Temurin), Gradle caching via `gradle/actions/setup-gradle@v4`, and artifact uploads.
 
@@ -184,11 +185,15 @@ All workflows use JDK 17 (Temurin), Gradle caching via `gradle/actions/setup-gra
 ## Developer Guide
 
 ### Prerequisites
-- **Android Studio** Hedgehog or later with **JDK 21** (Android Studio's bundled JBR recommended)
-- **Gradle** 9.1.0 (wrapper included)
-- **Android Gradle Plugin** 9.0.0
-- **Kotlin** 2.3.0 (K2 compiler enabled)
-- **KSP** (Kotlin Symbol Processing) for annotation processing
+- **Android Studio** Hedgehog or later with **JDK 17 or 21** (Android Studio's bundled JBR recommended)
+- **Gradle** 8.11.1 (wrapper included)
+- **Android Gradle Plugin** 8.10.0
+- **Kotlin** 2.1.0
+- **Hilt** 2.55 (Latest stable for AGP 8.x)
+- **RetailIQ backend** running locally (default: `http://10.0.2.2:5000/`)
+
+> [!NOTE]
+> Hilt 2.59+ requires AGP 9.0.0. To maintain compatibility with AGP 8.10.0, this project uses Hilt 2.55.
 - **RetailIQ backend** running locally (default: `http://10.0.2.2:5000/`)
 
 ### Configuration
@@ -226,10 +231,11 @@ The project is configured to sign release APKs using a keystore.
 
 #### CI/CD (GitHub Actions)
 Add the following as **GitHub Repository Secrets**:
-- `RELEASE_STORE_PASSWORD`
-- `RELEASE_KEY_ALIAS`
-- `RELEASE_KEY_PASSWORD`
-The keystore file is currently stored in `app/release-keystore.jks` (placeholder generated for initial setup). For production, you should securely upload your production keystore.
+- `RELEASE_STORE_PASSWORD` or `KEYSTORE_PASSWORD`
+- `RELEASE_KEY_ALIAS` or `KEY_ALIAS`
+- `RELEASE_KEY_PASSWORD` or `KEY_PASSWORD`
+- `RELEASE_SIGNING_KEY` (Base64 encoded keystore file)
+The keystore file is currently stored in `app/release-keystore.jks` (placeholder generated for initial setup) and used by `.github/workflows/release.yml`. The exact values for these credentials can be found tracked in the `keystore.properties` file at the root. For on-demand release builds, `.github/workflows/build-apk.yml` can be dispatched with the environment variables. For production, you should securely upload your production keystore.
 
 ### Running Unit Tests
 
@@ -295,17 +301,27 @@ return try {
 
 ---
 
-## Recent Changes (2026-03-06)
+## Recent Changes (2026-03-08)
 
-### Recent Changes (2026-03-08)
+### Android CI/CD Keystore Fix (2026-03-08)
+- **PR Build Failure Fixed**: Resolved `kspReleaseKotlin` and `validateSigningRelease` execution failures occurring on Pull Request workflow triggers.
+  - Modified `.github/workflows/android.yml` to skip decoding `RELEASE_SIGNING_KEY` and running `assembleRelease` when `github.event_name == 'pull_request'` since PRs from forks do not have pipeline access to repository secrets. 
+  - Changed `./gradlew lint` to `./gradlew lintDebug` to prevent the Gradle linting task from evaluating the release signing config and failing on a missing or empty `release-keystore.jks`.
+
+### Complete Production Pass (2026-03-08)
+- **Events Feature Complete**: Wired the functional `EventCalendarScreen` into `AppNav.kt`, removing the dead "Coming soon" placeholder screen.
+- **Customers Feature Complete**: Created `CustomerRepository` and `CustomersViewModel` to fetch the real customer list from the backend. Replaced the "Coming in next release" placeholder `CustomersScreen` with a fully functional `LazyColumn` featuring pull-to-refresh. Unit tested the ViewModel state management.
+- **WhatsApp Logs Polish**: Implemented the Material 3 `PullToRefreshBox` API for the `WhatsAppLogScreen` based on `ExperimentalMaterial3Api`, resolving a pending TODO.
+- **Rules Polish**: Removed dormant XML comments and stubs scattered throughout the codebase.
+
+### Major AGP Stable Migration (2026-03-08)
+- **AGP Downgrade (9.0.0 → 8.10.0)**: Migrated to the latest stable 8.x release to resolve fundamental incompatibilities between KSP, legacy plugins, and AGP 9.0's new flags.
+  - Eliminated `android.builtInKotlin=false` and `android.newDsl=false` workarounds.
+  - Aligned Kotlin to 2.2.0 and Gradle to 8.11.1 for a supported stability matrix.
 - **Release APK Signing**: Corrected building configuration for signed release APKs.
   - Implemented secure property loading via `keystore.properties` or environment variables.
   - Updated GitHub Actions CI/CD to produce signed release artifacts using GitHub Secrets.
   - Automated JDK 21 (JBR) path resolution via `gradle.properties`.
-- **Major AGP 9.0.0 Upgrade**: Safely updated the project to Android Gradle Plugin 9.0.0, Gradle 9.1.0, and Kotlin 2.3.0.
-  - **Room 2.7.0 Update**: Upgraded Room to 2.7.0 to fix KSP compatibility issues with the latest Kotlin version.
-  - **KSP Migration**: Migrated all annotation processors from `kapt` to `ksp`.
-  - **Compatibility Optimization**: Configured `android.builtInKotlin=false` and `android.newDsl=false` in `gradle.properties` to ensure KSP and legacy plugin compatibility during the major branch transition.
 - **CI/CD Pipeline Setup**: Created `.github/workflows/android.yml` to automate Gradle builds, Lint checks, and Unit Tests via GitHub Actions on push/PR.
 - **Setup Wizard Overhaul**: Implemented an elegant 4-step Material 3 onboarding flow for new users.
 - **Email OTP Authentication**: Added email validation and registration fields aligned with the latest RetailIQ standards.

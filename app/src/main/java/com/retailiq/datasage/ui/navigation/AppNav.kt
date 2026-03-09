@@ -252,9 +252,7 @@ fun MainNavigation(
 
                 // ── Events ──────────────────────────────────────────────
                 composable("events") {
-                    com.retailiq.datasage.ui.events.EventsScreen(
-                        onNavigateBack = { navController.popBackStack() }
-                    )
+                    com.retailiq.datasage.ui.events.EventCalendarScreen()
                 }
 
                 // ── Forecast ────────────────────────────────────────────
