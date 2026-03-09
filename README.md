@@ -237,6 +237,9 @@ Add the following as **GitHub Repository Secrets**:
 - `RELEASE_SIGNING_KEY` (Base64 encoded keystore file)
 The keystore file is currently stored in `app/release-keystore.jks` (placeholder generated for initial setup) and used by `.github/workflows/release.yml`. The exact values for these credentials can be found tracked in the `keystore.properties` file at the root. For on-demand release builds, `.github/workflows/build-apk.yml` can be dispatched with the environment variables. For production, you should securely upload your production keystore.
 
+> [!NOTE]
+> The release signing configuration in `build.gradle.kts` evaluates whether `release-keystore.jks` exists and is a valid file (>0 bytes). If the Keystore is not found (like when Secrets are missing in CI), the signing configuration gracefully falls back to building an `app-release-unsigned.apk` rather than failing the build.
+
 ### Running Unit Tests
 
 ```bash
