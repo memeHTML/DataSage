@@ -31,6 +31,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.retailiq.datasage.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
@@ -81,7 +84,16 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("DataSage") },
+                title = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.datasage_logo),
+                            contentDescription = "Logo",
+                            modifier = Modifier.height(32.dp).padding(end = 12.dp)
+                        )
+                        Text("DataSage", fontWeight = FontWeight.Bold)
+                    }
+                },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")

@@ -24,6 +24,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.retailiq.datasage.R
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Category
@@ -86,7 +89,13 @@ fun SplashScreen(viewModel: AuthViewModel, onRoute: (Boolean, Boolean) -> Unit) 
         }
     }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Image(
+            painter = painterResource(id = R.drawable.datasage_logo),
+            contentDescription = "DataSage Logo",
+            modifier = Modifier.size(120.dp).padding(bottom = 16.dp)
+        )
         CircularProgressIndicator()
+        Spacer(Modifier.height(16.dp))
         Text("Loading DataSage...")
     }
 }
@@ -101,8 +110,13 @@ fun LoginScreen(viewModel: AuthViewModel, onRegister: () -> Unit, onForgot: () -
     val scope = rememberCoroutineScope()
 
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { p ->
-        Column(Modifier.fillMaxSize().padding(p).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Login", style = MaterialTheme.typography.headlineMedium)
+        Column(Modifier.fillMaxSize().padding(p).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.datasage_logo),
+                contentDescription = "DataSage Logo",
+                modifier = Modifier.height(64.dp).padding(bottom = 8.dp)
+            )
+            Text("Login", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(mobile, { mobile = it }, label = { Text("Mobile Number") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(password, { password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { TextButton(onClick = onForgot) { Text("Forgot Password?") } }
@@ -137,8 +151,13 @@ fun RegisterScreen(viewModel: AuthViewModel, onOtp: (String) -> Unit) {
     var password by remember { mutableStateOf("") }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { p ->
-        Column(Modifier.fillMaxSize().padding(p).padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Register", style = MaterialTheme.typography.headlineMedium)
+        Column(Modifier.fillMaxSize().padding(p).padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.datasage_logo),
+                contentDescription = "DataSage Logo",
+                modifier = Modifier.height(48.dp).padding(bottom = 8.dp)
+            )
+            Text("Register", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(fullName, { fullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(mobile, { mobile = it }, label = { Text("Mobile Number") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(email, { email = it }, label = { Text("Email Address") }, modifier = Modifier.fillMaxWidth())
